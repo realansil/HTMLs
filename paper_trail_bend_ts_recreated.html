@@ -1,0 +1,2253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f4f0e7">
+  <title>Paper Trail — Books for the curious</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f4f0e7;
+      --paper-deep: #eae3d5;
+      --ink: #203a31;
+      --ink-soft: #657169;
+      --rust: #bd5b40;
+      --rust-dark: #9f4934;
+      --sage: #d8dfd2;
+      --sage-dark: #aebda9;
+      --mustard: #e8d8a9;
+      --line: #d8d0c1;
+      --white: #fffdf8;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; }
+    body {
+      overflow: hidden;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    #stage {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      background: var(--paper);
+      isolation: isolate;
+    }
+
+    #source, #output {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+    #source { z-index: 1; }
+    #output {
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    #content {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      overscroll-behavior: contain;
+      background: var(--paper);
+      scrollbar-width: thin;
+      scrollbar-color: #c8bda9 transparent;
+      scroll-behavior: smooth;
+    }
+
+    /* Header */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      min-height: 78px;
+      padding: 0 clamp(22px, 6.5vw, 92px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      background: rgba(244, 240, 231, .96);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(14px);
+    }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--ink);
+      text-decoration: none;
+      min-width: max-content;
+    }
+    .brand-mark {
+      width: 28px;
+      height: 33px;
+      position: relative;
+      background: var(--rust);
+      clip-path: polygon(0 0, 50% 12%, 100% 0, 100% 100%, 50% 87%, 0 100%);
+      box-shadow: 5px 4px 0 rgba(32,58,49,.12);
+    }
+    .brand-name {
+      display: block;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 18px;
+      line-height: 1;
+      letter-spacing: .12em;
+      font-weight: 700;
+    }
+    .brand-sub {
+      display: block;
+      margin-top: 6px;
+      color: var(--ink-soft);
+      font-size: 8px;
+      letter-spacing: .19em;
+      font-weight: 700;
+    }
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: clamp(18px, 3vw, 38px);
+    }
+    .nav a {
+      color: var(--ink);
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 650;
+      transition: color .2s ease;
+    }
+    .nav a:hover { color: var(--rust); }
+    .nav .nav-cta {
+      padding: 13px 19px;
+      border-radius: 100px;
+      color: var(--white);
+      background: var(--ink);
+    }
+    .nav .nav-cta:hover { color: white; background: var(--rust); }
+
+    main { padding: 26px clamp(22px, 6.5vw, 92px) 0; }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      color: var(--rust);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .19em;
+      text-transform: uppercase;
+    }
+    .eyebrow::before {
+      content: "";
+      display: inline-block;
+      width: 22px;
+      height: 1px;
+      background: currentColor;
+    }
+
+    /* Hero */
+    .hero {
+      min-height: 480px;
+      display: grid;
+      grid-template-columns: 1.03fr .97fr;
+      align-items: center;
+      gap: 28px;
+      padding: clamp(34px, 5vw, 66px);
+      border-radius: 28px;
+      overflow: hidden;
+      background: #e8e4d8;
+      position: relative;
+    }
+    .hero-copy { position: relative; z-index: 1; }
+    h1, h2, h3, p { margin-top: 0; }
+    .hero h1 {
+      margin: 26px 0 22px;
+      max-width: 640px;
+      color: var(--ink);
+      font: 400 clamp(46px, 5.5vw, 76px)/.98 Georgia, "Times New Roman", serif;
+      letter-spacing: -.055em;
+    }
+    .hero h1 em { color: var(--rust); font-weight: 400; }
+    .hero-copy > p {
+      max-width: 430px;
+      margin-bottom: 27px;
+      color: #626e64;
+      font-size: 15px;
+      line-height: 1.8;
+    }
+    .button {
+      min-height: 49px;
+      padding: 0 22px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      border: 0;
+      border-radius: 100px;
+      background: var(--rust);
+      color: white;
+      text-decoration: none;
+      font: 750 10px/1 Inter, ui-sans-serif, system-ui, sans-serif;
+      letter-spacing: .1em;
+      transition: background .2s ease, transform .2s ease;
+      cursor: pointer;
+    }
+    .button:hover { background: var(--rust-dark); transform: translateY(-2px); }
+    .hero-note {
+      display: block;
+      margin-top: 20px;
+      color: #788075;
+      font-size: 10px;
+      letter-spacing: .04em;
+    }
+    .hero-art {
+      min-height: 340px;
+      height: 100%;
+      position: relative;
+      display: grid;
+      place-items: center;
+      border-radius: 22px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 55% 48%, rgba(255,255,255,.85), transparent 38%),
+        #d4ddcf;
+    }
+    .orbit {
+      position: absolute;
+      width: min(78%, 390px);
+      aspect-ratio: 1;
+      border: 1px solid rgba(66,92,73,.24);
+      border-radius: 50%;
+    }
+    .orbit::before, .orbit::after {
+      content: "";
+      position: absolute;
+      inset: 12%;
+      border: 1px solid rgba(66,92,73,.2);
+      border-radius: 50%;
+    }
+    .orbit::after { inset: 25%; }
+    .open-book {
+      width: min(78%, 390px);
+      height: 190px;
+      position: relative;
+      z-index: 1;
+      filter: drop-shadow(0 22px 20px rgba(32,47,37,.19));
+      transform: rotate(-7deg);
+      animation: float-book 6s ease-in-out infinite;
+    }
+    .open-book::before, .open-book::after {
+      content: "";
+      position: absolute;
+      top: 8px;
+      width: 50%;
+      height: 156px;
+      background: linear-gradient(155deg, #fffdf4 0%, #f0e7d5 100%);
+      border: 1px solid #d5c9b3;
+    }
+    .open-book::before {
+      left: 0;
+      border-radius: 8px 2px 3px 17px;
+      clip-path: polygon(0 0, 100% 12%, 100% 100%, 7% 82%);
+      transform: skewY(8deg);
+      transform-origin: right center;
+    }
+    .open-book::after {
+      right: 0;
+      border-radius: 2px 8px 17px 3px;
+      clip-path: polygon(0 12%, 100% 0, 93% 82%, 0 100%);
+      transform: skewY(-8deg);
+      transform-origin: left center;
+    }
+    .book-spine {
+      position: absolute;
+      z-index: 2;
+      top: 17px;
+      left: 50%;
+      width: 3px;
+      height: 145px;
+      background: #b5a68e;
+      transform: translateX(-50%);
+      border-radius: 50%;
+    }
+    .page-lines {
+      position: absolute;
+      z-index: 3;
+      left: 12%;
+      right: 12%;
+      top: 45px;
+      height: 75px;
+      opacity: .65;
+      background: repeating-linear-gradient(to bottom, transparent 0 12px, #c6b99f 12px 13px);
+      clip-path: polygon(0 0, 48% 15%, 48% 100%, 0 82%, 52% 100%, 52% 15%, 100% 0, 100% 82%);
+    }
+    .floating-cover {
+      position: absolute;
+      z-index: 4;
+      top: 15%;
+      left: 12%;
+      width: 54px;
+      height: 77px;
+      display: grid;
+      place-items: center;
+      color: #f4dfb8;
+      background: #b75c43;
+      border: 1px solid rgba(255,255,255,.4);
+      box-shadow: 8px 12px 22px rgba(32,47,37,.15);
+      transform: rotate(-13deg);
+      font: 700 25px Georgia, serif;
+    }
+    .round-stamp {
+      position: absolute;
+      z-index: 5;
+      top: 17%;
+      right: 10%;
+      width: 79px;
+      height: 79px;
+      display: grid;
+      place-items: center;
+      padding: 12px;
+      border-radius: 50%;
+      color: #fff8e9;
+      background: var(--rust);
+      text-align: center;
+      font-size: 9px;
+      font-weight: 800;
+      line-height: 1.5;
+      letter-spacing: .13em;
+      transform: rotate(9deg);
+    }
+    .spark {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #b96a4c;
+    }
+    .spark.one { left: 22%; bottom: 17%; }
+    .spark.two { right: 24%; bottom: 23%; width: 5px; height: 5px; }
+    @keyframes float-book {
+      0%, 100% { transform: rotate(-7deg) translateY(0); }
+      50% { transform: rotate(-5deg) translateY(-9px); }
+    }
+
+    /* Section headings */
+    .section { padding-top: 104px; }
+    .section-heading {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 30px;
+    }
+    .section-heading h2 {
+      margin: 15px 0 0;
+      color: var(--ink);
+      font: 400 clamp(32px, 3.5vw, 45px)/1.04 Georgia, "Times New Roman", serif;
+      letter-spacing: -.04em;
+    }
+    .section-heading > p {
+      margin: 0 0 5px;
+      color: var(--ink-soft);
+      font-size: 12px;
+    }
+
+    /* Categories */
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+    .category {
+      min-height: 178px;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: space-between;
+      border-radius: 17px;
+      color: var(--ink);
+      text-decoration: none;
+      transition: transform .22s ease, box-shadow .22s ease;
+    }
+    .category:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 13px 30px rgba(39,48,38,.1);
+    }
+    .category:nth-child(1) { background: #d7e0d2; }
+    .category:nth-child(2) { background: #ead9ac; }
+    .category:nth-child(3) { background: #ded0df; }
+    .category:nth-child(4) { background: #cbd9dc; }
+    .category-symbol { font: 36px Georgia, serif; opacity: .8; }
+    .category strong { display: block; font: 700 18px Georgia, serif; }
+    .category small { display: block; margin-top: 7px; font-size: 11px; opacity: .75; }
+
+    /* Featured books */
+    .book-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .book-card {
+      padding: 15px 15px 17px;
+      min-width: 0;
+      border: 1px solid rgba(71,78,63,.08);
+      border-radius: 16px;
+      background: var(--white);
+      transition: transform .22s ease, box-shadow .22s ease;
+    }
+    .book-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 17px 32px rgba(42,49,39,.1);
+    }
+    .cover {
+      aspect-ratio:  .76;
+      width: min(100%, 176px);
+      margin: 0 auto 18px;
+      padding: 16px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.2);
+      box-shadow: 5px 8px 13px rgba(40,45,37,.16);
+      text-align: center;
+      isolation: isolate;
+    }
+    .cover::before {
+      content: "";
+      position: absolute;
+      inset: 8px;
+      border: 1px solid rgba(255,255,255,.36);
+      z-index: -1;
+    }
+    .cover::after {
+      content: "";
+      position: absolute;
+      width: 120px;
+      height: 120px;
+      border: 1px solid rgba(255,255,255,.25);
+      border-radius: 50%;
+      top: 30%;
+      z-index: -1;
+    }
+    .cover .cover-kicker { font: 700 7px Arial, sans-serif; letter-spacing: .2em; }
+    .cover .cover-title { font: 700 clamp(17px, 1.6vw, 23px)/1.05 Georgia, serif; letter-spacing: -.03em; }
+    .cover .cover-author { font: 700 7px Arial, sans-serif; letter-spacing: .12em; }
+    .cover.midnight { color: #f3d6a6; background: #2d5148; }
+    .cover.atomic { color: #4e3b2c; background: #d9b981; }
+    .cover.achilles { color: #f7e5b9; background: #ad6059; }
+    .cover.sweetgrass { color: #f1e1b7; background: #607b65; }
+    .cover.atomic::after { border-width: 15px; opacity: .22; }
+    .cover.achilles::after { width: 68px; height: 68px; border-width: 12px; }
+    .cover.sweetgrass::after { width: 65px; height: 145px; border-radius: 100% 0; transform: rotate(35deg); }
+    .book-meta { display: flex; align-items: start; justify-content: space-between; gap: 10px; }
+    .book-meta h3 {
+      margin: 0;
+      color: var(--ink);
+      font: 700 16px/1.2 Georgia, serif;
+    }
+    .book-meta p {
+      margin: 6px 0 0;
+      color: var(--ink-soft);
+      font-size: 10px;
+    }
+    .book-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 15px;
+    }
+    .price { color: var(--rust); font-size: 12px; font-weight: 800; }
+    .save {
+      width: 31px;
+      height: 31px;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      color: var(--ink);
+      background: transparent;
+      font-size: 17px;
+      cursor: pointer;
+    }
+    .save[aria-pressed="true"] { color: white; border-color: var(--rust); background: var(--rust); }
+
+    /* Note / footer */
+    .reading-note {
+      margin-top: 105px;
+      padding: clamp(32px, 5vw, 62px);
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      align-items: center;
+      gap: 34px;
+      border-radius: 24px;
+      overflow: hidden;
+      color: #fffaf0;
+      background: var(--ink);
+    }
+    .reading-note .eyebrow { color: #e5ae91; }
+    .reading-note h2 {
+      margin: 22px 0 15px;
+      font: 400 clamp(35px, 4.4vw, 57px)/1.03 Georgia, serif;
+      letter-spacing: -.045em;
+    }
+    .reading-note h2 em { color: #e7b097; }
+    .reading-note p {
+      max-width: 460px;
+      margin-bottom: 0;
+      color: #cbd4c9;
+      font-size: 12px;
+      line-height: 1.8;
+    }
+    .note-art {
+      min-height: 190px;
+      position: relative;
+      display: grid;
+      place-items: center;
+    }
+    .note-art::before {
+      content: "";
+      width: 190px;
+      height: 190px;
+      position: absolute;
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 50%;
+    }
+    .note-book {
+      width: 215px;
+      height: 130px;
+      position: relative;
+      transform: rotate(7deg);
+      filter: drop-shadow(0 13px 12px rgba(0,0,0,.25));
+    }
+    .note-book::before, .note-book::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      width: 50%;
+      height: 100%;
+      background: #f5e9d4;
+      border: 1px solid #cfc0a8;
+    }
+    .note-book::before { left: 0; border-radius: 10px 0 0 12px; transform: skewY(8deg); }
+    .note-book::after { right: 0; border-radius: 0 10px 12px 0; transform: skewY(-8deg); }
+    .footer {
+      padding: 36px 0 42px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      color: var(--ink-soft);
+      font-size: 9px;
+      letter-spacing: .08em;
+    }
+    .footer b { color: var(--ink); letter-spacing: .16em; }
+    .footer a { color: var(--ink-soft); text-decoration: none; }
+    .footer a:hover { color: var(--rust); }
+
+    .mode-pill {
+      position: fixed;
+      z-index: 20;
+      right: 16px;
+      bottom: 14px;
+      padding: 8px 12px;
+      border: 1px solid rgba(32,58,49,.12);
+      border-radius: 100px;
+      color: #667269;
+      background: rgba(255,253,248,.92);
+      font-size: 9px;
+      letter-spacing: .04em;
+      box-shadow: 0 5px 18px rgba(32,58,49,.08);
+      pointer-events: none;
+    }
+
+    @media (max-width: 760px) {
+      .topbar { min-height: 70px; padding: 0 20px; }
+      .nav { gap: 13px; }
+      .nav a { font-size: 10px; }
+      .nav a:not(.nav-cta) { display: none; }
+      .nav .nav-cta { padding: 12px 15px; }
+      main { padding: 16px 16px 0; }
+      .hero {
+        min-height: 0;
+        grid-template-columns: 1fr;
+        gap: 20px;
+        padding: 30px 24px 20px;
+        border-radius: 22px;
+      }
+      .hero h1 { font-size: clamp(43px, 11vw, 61px); }
+      .hero-copy > p { font-size: 13px; }
+      .hero-art { min-height: 265px; }
+      .open-book { transform: rotate(-7deg) scale(.86); }
+      .section { padding-top: 76px; }
+      .section-heading { align-items: start; flex-direction: column; gap: 11px; }
+      .section-heading h2 { font-size: 34px; }
+      .category-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+      .category { min-height: 150px; padding: 18px; }
+      .category strong { font-size: 16px; }
+      .book-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 11px; }
+      .book-card { padding: 12px; }
+      .cover { width: min(100%, 150px); }
+      .cover .cover-title { font-size: 18px; }
+      .book-meta h3 { font-size: 14px; }
+      .reading-note {
+        margin-top: 76px;
+        grid-template-columns: 1fr;
+        gap: 4px;
+        padding: 30px 25px 18px;
+      }
+      .reading-note h2 { font-size: 40px; }
+      .note-art { min-height: 145px; }
+      .note-art::before { width: 145px; height: 145px; }
+      .note-book { transform: scale(.8) rotate(7deg); }
+      .footer { padding: 30px 2px 38px; align-items: start; flex-direction: column; gap: 9px; }
+    }
+
+    @media (max-width: 370px) {
+      .brand-name { font-size: 15px; }
+      .nav .nav-cta { padding: 11px 12px; font-size: 9px; }
+      .category { min-height: 140px; }
+      .cover { padding: 13px 8px; }
+      .cover .cover-title { font-size: 16px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+      }
+    }
+  </style>
+  <meta name="description" content="Paper Trail — a thoughtfully curated independent bookstore. Canvas UI Bend effect powered by the supplied Bend.ts engine.">
+</head>
+<body>
+  <div id="stage">
+    <canvas id="source">
+      <div id="content">
+        <header class="topbar">
+          <a class="brand" href="#home" aria-label="Paper Trail home">
+            <span class="brand-mark"></span>
+            <span>
+              <span class="brand-name">PAPER TRAIL</span>
+              <span class="brand-sub">BOOKS FOR THE CURIOUS</span>
+            </span>
+          </a>
+          <nav class="nav" aria-label="Main navigation">
+            <a href="#discover">Discover</a>
+            <a href="#bestsellers">Bestsellers</a>
+            <a class="nav-cta" href="#our-story">OUR STORY ↗</a>
+          </nav>
+        </header>
+
+        <main id="home">
+          <section class="hero" aria-labelledby="hero-title">
+            <div class="hero-copy">
+              <span class="eyebrow">An independent bookstore</span>
+              <h1 id="hero-title">Find the story<br>that <em>finds you.</em></h1>
+              <p>A thoughtful collection of books for curious minds, slow mornings and faraway places. Come in for a browse. Leave with a new favourite.</p>
+              <a class="button" href="#discover">EXPLORE THE SHELVES <span>↗</span></a>
+              <span class="hero-note">Picked with care. Read at your own pace.</span>
+            </div>
+            <div class="hero-art" aria-hidden="true">
+              <div class="orbit"></div>
+              <div class="floating-cover">P</div>
+              <div class="open-book"><span class="book-spine"></span><span class="page-lines"></span></div>
+              <div class="round-stamp">READ<br>MORE<br>WONDER</div>
+              <i class="spark one"></i><i class="spark two"></i>
+            </div>
+          </section>
+
+          <section class="section" id="discover">
+            <div class="section-heading">
+              <div>
+                <span class="eyebrow">A shelf for every mood</span>
+                <h2>Browse by feeling.</h2>
+              </div>
+              <p>There is always a new direction to wander in.</p>
+            </div>
+            <div class="category-grid">
+              <a class="category" href="#bestsellers">
+                <span class="category-symbol">✳</span>
+                <span><strong>Fiction</strong><small>Worlds to get lost in</small></span>
+              </a>
+              <a class="category" href="#bestsellers">
+                <span class="category-symbol">◉</span>
+                <span><strong>Non-fiction</strong><small>Ideas worth keeping</small></span>
+              </a>
+              <a class="category" href="#bestsellers">
+                <span class="category-symbol">“</span>
+                <span><strong>Poetry</strong><small>A little wonder in words</small></span>
+              </a>
+              <a class="category" href="#bestsellers">
+                <span class="category-symbol">✦</span>
+                <span><strong>Young readers</strong><small>Big adventures begin</small></span>
+              </a>
+            </div>
+          </section>
+
+          <section class="section" id="bestsellers">
+            <div class="section-heading">
+              <div>
+                <span class="eyebrow">The Paper Trail edit</span>
+                <h2>On our reading list.</h2>
+              </div>
+              <p>A few good places to begin.</p>
+            </div>
+            <div class="book-grid">
+              <article class="book-card">
+                <div class="cover midnight">
+                  <span class="cover-kicker">A NOVEL</span>
+                  <span class="cover-title">THE<br>MIDNIGHT<br>LIBRARY</span>
+                  <span class="cover-author">MATT HAIG</span>
+                </div>
+                <div class="book-meta"><div><h3>The Midnight Library</h3><p>Matt Haig · Fiction</p></div></div>
+                <div class="book-bottom"><span class="price">₹499</span><button class="save" type="button" aria-label="Save The Midnight Library" aria-pressed="false">♡</button></div>
+              </article>
+              <article class="book-card">
+                <div class="cover atomic">
+                  <span class="cover-kicker">TINY CHANGES</span>
+                  <span class="cover-title">ATOMIC<br>HABITS</span>
+                  <span class="cover-author">JAMES CLEAR</span>
+                </div>
+                <div class="book-meta"><div><h3>Atomic Habits</h3><p>James Clear · Growth</p></div></div>
+                <div class="book-bottom"><span class="price">₹599</span><button class="save" type="button" aria-label="Save Atomic Habits" aria-pressed="false">♡</button></div>
+              </article>
+              <article class="book-card">
+                <div class="cover achilles">
+                  <span class="cover-kicker">A NOVEL</span>
+                  <span class="cover-title">THE SONG<br>OF ACHILLES</span>
+                  <span class="cover-author">MADELINE MILLER</span>
+                </div>
+                <div class="book-meta"><div><h3>The Song of Achilles</h3><p>Madeline Miller · Fiction</p></div></div>
+                <div class="book-bottom"><span class="price">₹449</span><button class="save" type="button" aria-label="Save The Song of Achilles" aria-pressed="false">♡</button></div>
+              </article>
+              <article class="book-card">
+                <div class="cover sweetgrass">
+                  <span class="cover-kicker">INDIGENOUS WISDOM</span>
+                  <span class="cover-title">BRAIDING<br>SWEETGRASS</span>
+                  <span class="cover-author">ROBIN WALL KIMMERER</span>
+                </div>
+                <div class="book-meta"><div><h3>Braiding Sweetgrass</h3><p>Robin Wall Kimmerer · Nature</p></div></div>
+                <div class="book-bottom"><span class="price">₹650</span><button class="save" type="button" aria-label="Save Braiding Sweetgrass" aria-pressed="false">♡</button></div>
+              </article>
+            </div>
+          </section>
+
+          <section class="reading-note" id="our-story">
+            <div>
+              <span class="eyebrow">A small note from our bookshop</span>
+              <h2>For the love<br>of <em>turning pages.</em></h2>
+              <p>We believe a good book can change the shape of an ordinary day. Our shelves are chosen for the stories, ideas and voices that deserve to be found. Take your time. There is no rush here.</p>
+            </div>
+            <div class="note-art" aria-hidden="true"><div class="note-book"></div></div>
+          </section>
+
+          <footer class="footer">
+            <div><b>PAPER TRAIL</b><br><br>A bookstore for the curious.</div>
+            <div>BOOKS · STORIES · DISCOVERY<br><br>© 2026 PAPER TRAIL. MADE FOR READERS.</div>
+          </footer>
+        </main>
+      </div>
+    </canvas>
+    <canvas id="output" aria-hidden="true"></canvas>
+  </div>
+
+  <div class="mode-pill" id="mode-status" role="status" aria-live="polite">Loading Bend…</div>
+
+  <script>
+// Helpers adapted to the imported Bend.ts engine; no external helper bundle is needed.
+const canvasDimensionLimits = new WeakMap();
+function getCanvasPixelRatio(element, context) {
+  const scale = window.visualViewport?.scale || 1;
+  const requested = Math.min(window.devicePixelRatio || 1, 2) * scale;
+  const width = Math.max(element.clientWidth, 1);
+  const height = Math.max(element.clientHeight, 1);
+  let maxDimension = 8192;
+  if (context) {
+    let limit = canvasDimensionLimits.get(context);
+    if (limit === undefined) {
+      limit = Math.min(maxDimension, context.getParameter(context.MAX_TEXTURE_SIZE), context.getParameter(context.MAX_RENDERBUFFER_SIZE));
+      canvasDimensionLimits.set(context, limit);
+    }
+    maxDimension = limit;
+  }
+  return Math.min(requested, maxDimension / Math.max(width, height), Math.sqrt(16777216 / (width * height)));
+}
+function createCanvasResizeObserver(onResize) {
+  const viewport = window.visualViewport;
+  let frame = 0;
+  let disconnected = false;
+  const schedule = () => {
+    if (frame || disconnected) return;
+    frame = requestAnimationFrame(() => { frame = 0; onResize(); });
+  };
+  const observer = new ResizeObserver(schedule);
+  window.addEventListener("resize", schedule, { passive: true });
+  viewport?.addEventListener("resize", schedule, { passive: true });
+  return {
+    observe(element, options) { observer.observe(element, options); },
+    unobserve(element) { observer.unobserve(element); },
+    disconnect() {
+      disconnected = true;
+      observer.disconnect();
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", schedule);
+      viewport?.removeEventListener("resize", schedule);
+    }
+  };
+}
+function isHtmlInCanvasBlocked() {
+  if (typeof navigator === "undefined") return false;
+  const platform = navigator.userAgentData?.platform;
+  return platform === "Android" || /Android/i.test(navigator.userAgent);
+}
+function prepareHtmlInCanvas(source, content) {
+  if ("content" in source) {
+    source.setAttribute("content", "drawable");
+    content.setAttribute("drawable", "");
+  } else {
+    source.setAttribute("layoutsubtree", "");
+  }
+}
+function drawHtmlInCanvas(source, context, content) {
+  const transform = context.drawElementImage(content, 0, 0);
+  if (transform && typeof source.updateElementGeometry === "function") {
+    source.updateElementGeometry(content, { canvasTransform: transform });
+  }
+}
+function createRectCache(element) {
+  let current = element.getBoundingClientRect();
+  const refresh = () => { current = element.getBoundingClientRect(); };
+  const observer = new ResizeObserver(refresh);
+  observer.observe(element);
+  window.addEventListener("resize", refresh, { passive: true });
+  window.addEventListener("scroll", refresh, { capture: true, passive: true });
+  return {
+    get current() { return current; },
+    destroy() {
+      observer.disconnect();
+      window.removeEventListener("resize", refresh);
+      window.removeEventListener("scroll", refresh, true);
+    }
+  };
+}
+
+const DEFAULTS = {
+    zone: 240,
+    angle: 80,
+    rounding: 150,
+    perspective: 700,
+    direction: "in",
+    ease: 240,
+    smoothing: 0.1,
+    top: true,
+    bottom: true,
+    tumble: 0.5,
+    tilt: 0.5,
+    interactionRotation: 0,
+    backend: "auto",
+};
+// ---------------------------------------------------------------------------
+// WGSL Shaders (WebGPU)
+// ---------------------------------------------------------------------------
+const WGSL_MIPMAP = /* wgsl */ `
+struct VSOut {
+  @builtin(position) pos: vec4f,
+  @location(0) uv: vec2f,
+}
+
+@group(0) @binding(0) var uSrc: texture_2d<f32>;
+@group(0) @binding(1) var uSampler: sampler;
+
+@vertex fn vs_main(@builtin(vertex_index) vertexIndex: u32) -> VSOut {
+  let pos = array<vec2f, 3>(
+    vec2f(-1.0, -1.0),
+    vec2f(3.0, -1.0),
+    vec2f(-1.0, 3.0),
+  );
+  let p = pos[vertexIndex];
+  var out: VSOut;
+  out.pos = vec4f(p, 0.0, 1.0);
+  out.uv = vec2f(p.x * 0.5 + 0.5, 0.5 - p.y * 0.5);
+  return out;
+}
+
+@fragment fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
+  return textureSampleLevel(uSrc, uSampler, uv, 0.0);
+}`;
+const WGSL_BEND = /* wgsl */ `
+struct Params {
+  contentSize: vec2f,
+  bg: vec3f,
+  zone: f32,
+  angle: f32,
+  persp: f32,
+  dir: f32,
+  topAmt: f32,
+  botAmt: f32,
+  maxX: f32,
+  pxY: f32,
+  pxX: f32,
+  cover: f32,
+  tiltX: f32,
+  tiltY: f32,
+  phi: f32,
+  round: f32,
+}
+
+@group(0) @binding(0) var<uniform> params: Params;
+@group(0) @binding(1) var uContent: texture_2d<f32>;
+@group(0) @binding(2) var uSampler: sampler;
+
+fn foldEdge(sy: f32, amt: f32) -> vec3f {
+  let yf = 1.0 - params.zone;
+  if (amt < 1e-4) { return vec3f(sy, 0.0, 1.0); }
+  let theta = params.angle * amt;
+  if (params.round < 1e-4) {
+    let s = sin(theta) * params.dir;
+    let c = cos(theta);
+    let denom = max(c * params.persp + s * (0.5 - sy), 1e-5);
+    let tRaw = params.persp * (sy - yf) / denom;
+    let t = clamp(tRaw, 0.0, params.zone);
+    let z = max(t * s, -0.85 * params.persp);
+    let alpha = 1.0 - smoothstep(params.zone, params.zone + 2.0 * params.pxY, tRaw);
+    return vec3f(yf + t, z, alpha);
+  }
+  if (sy <= yf) { return vec3f(sy, 0.0, 1.0); }
+  let R = min(params.round, params.zone);
+  let r = R / theta;
+  let ca = cos(theta);
+  let sa = sin(theta);
+  let yA = r * sa;
+  let zA = r * (1.0 - ca);
+  var prevSy = yf;
+  var prevZ = 0.0;
+  var prevU = 0.0;
+  var bestU = -1.0;
+  var bestZ = 0.0;
+  var maxSy = yf;
+  let du = params.zone / 40.0;
+  for (var i = 1; i <= 40; i++) {
+    let u = du * f32(i);
+    var Y: f32;
+    var Zm: f32;
+    if (u <= R) {
+      let a = u / r;
+      Y = r * sin(a);
+      Zm = r * (1.0 - cos(a));
+    } else {
+      Y = yA + (u - R) * ca;
+      Zm = zA + (u - R) * sa;
+    }
+    Y += yf;
+    let Z = max(Zm * params.dir, -0.85 * params.persp);
+    let scr = 0.5 + (Y - 0.5) * params.persp / (params.persp + Z);
+    if ((prevSy - sy) * (scr - sy) <= 0.0 && abs(scr - prevSy) > 1e-7) {
+      let f = clamp((sy - prevSy) / (scr - prevSy), 0.0, 1.0);
+      bestU = mix(prevU, u, f);
+      bestZ = mix(prevZ, Z, f);
+      if (params.dir > 0.0) { break; }
+    }
+    maxSy = max(maxSy, scr);
+    prevSy = scr;
+    prevZ = Z;
+    prevU = u;
+  }
+  if (bestU < 0.0) {
+    let alpha = 1.0 - smoothstep(maxSy - params.pxY, maxSy + params.pxY, sy);
+    return vec3f(1.0, prevZ, alpha);
+  }
+  return vec3f(yf + bestU, bestZ, 1.0);
+}
+
+fn tipPlane(sy: f32, phi: f32) -> vec2f {
+  let s = sin(phi);
+  let c = cos(phi);
+  let denom = max(c * params.persp + s * (sy - 0.5), 1e-4);
+  let t = params.persp * (1.0 - sy) / denom;
+  return vec2f(1.0 - t, t * s);
+}
+
+@fragment fn fs_main(@location(0) inUv: vec2f) -> @location(0) vec4f {
+  var uv = vec2f(inUv.x, 1.0 - inUv.y);
+  let cx = params.maxX * 0.5;
+  var zSum = 0.0;
+
+  if (abs(params.phi) > 1e-4) {
+    if (params.phi > 0.0) {
+      let r = tipPlane(uv.y, params.phi);
+      uv.y = r.x;
+      zSum += r.y;
+    } else {
+      let r = tipPlane(1.0 - uv.y, -params.phi);
+      uv.y = 1.0 - r.x;
+      zSum += r.y;
+    }
+  }
+
+  let zG = params.tiltX * (uv.x - cx) + params.tiltY * (uv.y - 0.5);
+  zSum += zG;
+  uv.y = 0.5 + (uv.y - 0.5) * (params.persp + zG) / params.persp;
+
+  let inTop = step(1.0 - params.zone, uv.y);
+  let inBot = step(uv.y, params.zone);
+
+  let top = foldEdge(uv.y, params.topAmt);
+  let bot = foldEdge(1.0 - uv.y, params.botAmt);
+
+  var srcY = uv.y;
+  srcY = mix(srcY, top.x, inTop);
+  srcY = mix(srcY, 1.0 - bot.x, inBot);
+
+  zSum += inTop * top.y + inBot * bot.y;
+  var alpha = mix(1.0, top.z, inTop) * mix(1.0, bot.z, inBot);
+
+  let srcX = cx + (uv.x - cx) * (params.persp + zSum) / params.persp;
+
+  alpha *= smoothstep(-2.0 * params.pxX, 0.0, srcX);
+  alpha *= 1.0 - smoothstep(params.maxX, params.maxX + 2.0 * params.pxX, srcX);
+  alpha *= smoothstep(-2.0 * params.pxY, 0.0, srcY);
+  alpha *= 1.0 - smoothstep(1.0, 1.0 + 2.0 * params.pxY, srcY);
+
+  let p = vec2f(
+    clamp(srcX, 0.0005, params.maxX - 0.0005),
+    clamp(srcY, 0.0005, 0.9995)
+  );
+  let sampleUv = vec2f(p.x, 1.0 - p.y);
+  let dx = dpdx(sampleUv) * params.contentSize;
+  let dy = dpdy(sampleUv) * params.contentSize;
+  let lod = max(0.0, log2(max(length(dx), length(dy))));
+  let base = textureSampleLevel(uContent, uSampler, sampleUv, lod);
+  let rgb = mix(params.bg, base.rgb, alpha * base.a) * params.cover;
+
+  return vec4f(rgb, params.cover);
+}`;
+// ---------------------------------------------------------------------------
+// GLSL Shaders (WebGL 2)
+// ---------------------------------------------------------------------------
+const GLSL_VERT = `#version 300 es
+precision highp float;
+layout(location = 0) in vec2 aPos;
+out vec2 vUv;
+void main () {
+  vUv = aPos * 0.5 + 0.5;
+  gl_Position = vec4(aPos, 0.0, 1.0);
+}`;
+const GLSL_FRAG = `#version 300 es
+precision highp float;
+in vec2 vUv;
+out vec4 outColor;
+uniform sampler2D uContent;
+uniform float uZone;
+uniform float uAngle;
+uniform float uPersp;
+uniform float uDir;
+uniform float uTopAmt;
+uniform float uBotAmt;
+uniform float uMaxX;
+uniform float uPxY;
+uniform float uPxX;
+uniform float uCover;
+uniform vec3 uBg;
+uniform float uTiltX;
+uniform float uTiltY;
+uniform float uPhi;
+uniform float uRound;
+
+vec3 foldEdge (float sy, float amt) {
+  float yf = 1.0 - uZone;
+  if (amt < 1e-4) return vec3(sy, 0.0, 1.0);
+  float theta = uAngle * amt;
+  if (uRound < 1e-4) {
+    float s = sin(theta) * uDir;
+    float c = cos(theta);
+    float denom = max(c * uPersp + s * (0.5 - sy), 1e-5);
+    float tRaw = uPersp * (sy - yf) / denom;
+    float t = clamp(tRaw, 0.0, uZone);
+    float z = max(t * s, -0.85 * uPersp);
+    float alpha = 1.0 - smoothstep(uZone, uZone + 2.0 * uPxY, tRaw);
+    return vec3(yf + t, z, alpha);
+  }
+  if (sy <= yf) return vec3(sy, 0.0, 1.0);
+  float R = min(uRound, uZone);
+  float r = R / theta;
+  float ca = cos(theta);
+  float sa = sin(theta);
+  float yA = r * sa;
+  float zA = r * (1.0 - ca);
+  float prevSy = yf;
+  float prevZ = 0.0;
+  float prevU = 0.0;
+  float bestU = -1.0;
+  float bestZ = 0.0;
+  float maxSy = yf;
+  float du = uZone / 40.0;
+  for (int i = 1; i <= 40; i++) {
+    float u = du * float(i);
+    float Y;
+    float Zm;
+    if (u <= R) {
+      float a = u / r;
+      Y = r * sin(a);
+      Zm = r * (1.0 - cos(a));
+    } else {
+      Y = yA + (u - R) * ca;
+      Zm = zA + (u - R) * sa;
+    }
+    Y += yf;
+    float Z = max(Zm * uDir, -0.85 * uPersp);
+    float scr = 0.5 + (Y - 0.5) * uPersp / (uPersp + Z);
+    if ((prevSy - sy) * (scr - sy) <= 0.0 && abs(scr - prevSy) > 1e-7) {
+      float f = clamp((sy - prevSy) / (scr - prevSy), 0.0, 1.0);
+      bestU = mix(prevU, u, f);
+      bestZ = mix(prevZ, Z, f);
+      if (uDir > 0.0) break;
+    }
+    maxSy = max(maxSy, scr);
+    prevSy = scr;
+    prevZ = Z;
+    prevU = u;
+  }
+  if (bestU < 0.0) {
+    float alpha = 1.0 - smoothstep(maxSy - uPxY, maxSy + uPxY, sy);
+    return vec3(1.0, prevZ, alpha);
+  }
+  return vec3(yf + bestU, bestZ, 1.0);
+}
+
+vec2 tipPlane (float sy, float phi) {
+  float s = sin(phi);
+  float c = cos(phi);
+  float denom = max(c * uPersp + s * (sy - 0.5), 1e-4);
+  float t = uPersp * (1.0 - sy) / denom;
+  return vec2(1.0 - t, t * s);
+}
+
+void main () {
+  vec2 uv = vUv;
+  float cx = uMaxX * 0.5;
+  float zSum = 0.0;
+
+  if (abs(uPhi) > 1e-4) {
+    if (uPhi > 0.0) {
+      vec2 r = tipPlane(uv.y, uPhi);
+      uv.y = r.x;
+      zSum += r.y;
+    } else {
+      vec2 r = tipPlane(1.0 - uv.y, -uPhi);
+      uv.y = 1.0 - r.x;
+      zSum += r.y;
+    }
+  }
+
+  float zG = uTiltX * (uv.x - cx) + uTiltY * (uv.y - 0.5);
+  zSum += zG;
+  uv.y = 0.5 + (uv.y - 0.5) * (uPersp + zG) / uPersp;
+
+  float inTop = step(1.0 - uZone, uv.y);
+  float inBot = step(uv.y, uZone);
+
+  vec3 top = foldEdge(uv.y, uTopAmt);
+  vec3 bot = foldEdge(1.0 - uv.y, uBotAmt);
+
+  float srcY = uv.y;
+  srcY = mix(srcY, top.x, inTop);
+  srcY = mix(srcY, 1.0 - bot.x, inBot);
+
+  zSum += inTop * top.y + inBot * bot.y;
+  float alpha = mix(1.0, top.z, inTop) * mix(1.0, bot.z, inBot);
+
+  float srcX = cx + (uv.x - cx) * (uPersp + zSum) / uPersp;
+
+  alpha *= smoothstep(-2.0 * uPxX, 0.0, srcX);
+  alpha *= 1.0 - smoothstep(uMaxX, uMaxX + 2.0 * uPxX, srcX);
+  alpha *= smoothstep(-2.0 * uPxY, 0.0, srcY);
+  alpha *= 1.0 - smoothstep(1.0, 1.0 + 2.0 * uPxY, srcY);
+
+  vec2 p = vec2(
+    clamp(srcX, 0.0005, uMaxX - 0.0005),
+    clamp(srcY, 0.0005, 0.9995)
+  );
+  vec4 base = texture(uContent, vec2(p.x, 1.0 - p.y));
+
+  outColor = vec4(mix(uBg, base.rgb, alpha * base.a), uCover);
+}`;
+// ---------------------------------------------------------------------------
+// Feature Detection & Shared GPU Device
+// ---------------------------------------------------------------------------
+function supportsHtmlInCanvas() {
+    if (typeof document === "undefined" || isHtmlInCanvasBlocked())
+        return false;
+    const probe = document.createElement("canvas");
+    const ctx = probe.getContext("2d");
+    return Boolean(ctx &&
+        typeof ctx.drawElementImage === "function" &&
+        typeof probe.requestPaint === "function");
+}
+/** True when the browser exposes WebGPU. The device itself is requested lazily. */
+function supportsWebGPU() {
+    return typeof navigator !== "undefined" && Boolean(navigator.gpu);
+}
+let sharedGpu = null;
+/** One WebGPU device per page, shared by every Bend instance. */
+function acquireGpu() {
+    if (!sharedGpu) {
+        sharedGpu = init().catch((error) => {
+            sharedGpu = null;
+            throw error;
+        });
+    }
+    return sharedGpu;
+}
+// ---------------------------------------------------------------------------
+// CSS Hover Patching
+// ---------------------------------------------------------------------------
+const HOVER_ATTR = "data-canvasui-hover";
+const CONTENT_ATTR = "data-canvasui-content";
+const CURSOR_ATTR = "data-canvasui-cursor";
+const HOVER_REWRITE = `:is([${HOVER_ATTR}], :hover:where(:not([${CONTENT_ATTR}], [${CONTENT_ATTR}] *)))`;
+function patchHoverRules() {
+    if (typeof document === "undefined")
+        return;
+    if (document.documentElement.dataset.canvasuiHoverRules === "")
+        return;
+    document.documentElement.dataset.canvasuiHoverRules = "";
+    const walk = (rules) => {
+        for (const rule of Array.from(rules)) {
+            if (rule instanceof CSSStyleRule) {
+                if (rule.selectorText.includes(":hover")) {
+                    try {
+                        rule.selectorText = rule.selectorText.replace(/:hover\b/g, HOVER_REWRITE);
+                    }
+                    catch { }
+                }
+                if (rule.cssRules.length)
+                    walk(rule.cssRules);
+            }
+            else if ("cssRules" in rule) {
+                try {
+                    walk(rule.cssRules);
+                }
+                catch { }
+            }
+        }
+    };
+    for (const sheet of Array.from(document.styleSheets)) {
+        try {
+            walk(sheet.cssRules);
+        }
+        catch { }
+    }
+    const style = document.createElement("style");
+    style.textContent = `[${CONTENT_ATTR}][${CURSOR_ATTR}], [${CONTENT_ATTR}][${CURSOR_ATTR}] * { cursor: var(--canvasui-cursor) !important; }`;
+    document.head.appendChild(style);
+}
+// ---------------------------------------------------------------------------
+// Renderer Implementations
+// ---------------------------------------------------------------------------
+function createWebGPURenderer(gpu, output, source) {
+    const screen = surface(gpu, output, {
+        autoResize: false,
+        alphaMode: "premultiplied",
+        label: "bend",
+    });
+    const linearSampler = sampler(gpu, {
+        minFilter: "linear",
+        magFilter: "linear",
+        mipmapFilter: "linear",
+        addressModeU: "clamp-to-edge",
+        addressModeV: "clamp-to-edge",
+    });
+    let contentTexture = null;
+    let mipmapLayout = null;
+    let mipmapPipeline = null;
+    function ensureContentTexture() {
+        const w = Math.max(1, source.width);
+        const h = Math.max(1, source.height);
+        const mipLevelCount = Math.floor(Math.log2(Math.max(w, h))) + 1;
+        if (!contentTexture ||
+            contentTexture.size[0] !== w ||
+            contentTexture.size[1] !== h ||
+            contentTexture.mipLevelCount !== mipLevelCount) {
+            contentTexture?.destroy();
+            contentTexture = gpu.device.createTexture({
+                size: [w, h],
+                format: "rgba8unorm",
+                usage: ["texture_binding", "copy_dst", "render_attachment"],
+                mipLevelCount,
+                label: "bend.content",
+            });
+        }
+        return contentTexture;
+    }
+    function ensureMipmapPipeline() {
+        if (!mipmapLayout) {
+            mipmapLayout = gpu.gpu.createBindGroupLayout({
+                label: "bend.mipmap.layout",
+                entries: [
+                    {
+                        binding: 0,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        texture: { sampleType: "float", viewDimension: "2d" },
+                    },
+                    {
+                        binding: 1,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        sampler: { type: "filtering" },
+                    },
+                ],
+            });
+        }
+        if (!mipmapPipeline) {
+            const shaderModule = gpu.gpu.createShaderModule({
+                label: "bend.mipmap",
+                code: WGSL_MIPMAP,
+            });
+            mipmapPipeline = gpu.gpu.createRenderPipeline({
+                label: "bend.mipmap",
+                layout: gpu.gpu.createPipelineLayout({ bindGroupLayouts: [mipmapLayout] }),
+                vertex: { module: shaderModule, entryPoint: "vs_main" },
+                fragment: {
+                    module: shaderModule,
+                    entryPoint: "fs_main",
+                    targets: [{ format: "rgba8unorm" }],
+                },
+                primitive: { topology: "triangle-list" },
+            });
+        }
+        return mipmapPipeline;
+    }
+    function generateMipmaps(texture) {
+        if (texture.mipLevelCount <= 1)
+            return;
+        const pipeline = ensureMipmapPipeline();
+        if (!mipmapLayout)
+            return;
+        const encoder = gpu.gpu.createCommandEncoder({ label: "bend.mipmap" });
+        for (let level = 1; level < texture.mipLevelCount; level++) {
+            const bindGroup = gpu.gpu.createBindGroup({
+                label: "bend.mipmap",
+                layout: mipmapLayout,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: texture.gpu.createView({
+                            baseMipLevel: level - 1,
+                            mipLevelCount: 1,
+                        }),
+                    },
+                    { binding: 1, resource: linearSampler },
+                ],
+            });
+            const pass = encoder.beginRenderPass({
+                label: "bend.mipmap",
+                colorAttachments: [
+                    {
+                        view: texture.gpu.createView({ baseMipLevel: level, mipLevelCount: 1 }),
+                        clearValue: { r: 0, g: 0, b: 0, a: 0 },
+                        loadOp: "clear",
+                        storeOp: "store",
+                    },
+                ],
+            });
+            pass.setPipeline(pipeline);
+            pass.setBindGroup(0, bindGroup);
+            pass.draw(3);
+            pass.end();
+        }
+        gpu.gpu.queue.submit([encoder.finish()]);
+    }
+    const fx = effect(gpu, WGSL_BEND, {
+        label: "bend",
+        set: { uSampler: linearSampler, uContent: ensureContentTexture() },
+    });
+    return {
+        resize(width, height) {
+            const [w, h] = screen.size;
+            if (w !== width || h !== height)
+                screen.resize([width, height]);
+        },
+        upload(src) {
+            const texture = ensureContentTexture();
+            gpu.gpu.queue.copyExternalImageToTexture({ source: src }, { texture: texture.gpu }, [src.width, src.height]);
+            generateMipmaps(texture);
+            fx.set({ uContent: texture });
+        },
+        render(params) {
+            fx.set({
+                params: {
+                    ...params,
+                    contentSize: [
+                        contentTexture?.size[0] ?? Math.max(1, source.width),
+                        contentTexture?.size[1] ?? Math.max(1, source.height),
+                    ],
+                },
+            });
+            gpuFrame(gpu, (f) => f.pass(screen, fx));
+        },
+        destroy() {
+            contentTexture?.destroy();
+            screen.dispose();
+        },
+    };
+}
+function createWebGL2Renderer(output) {
+    const gl = output.getContext("webgl2", {
+        alpha: true,
+        depth: false,
+        stencil: false,
+        antialias: false,
+        premultipliedAlpha: false,
+    });
+    if (!gl || gl.isContextLost())
+        return null;
+    function compile(type, text) {
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, text);
+        gl.compileShader(shader);
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            console.error("Bend shader error:", gl.getShaderInfoLog(shader));
+        }
+        return shader;
+    }
+    const vertexShader = compile(gl.VERTEX_SHADER, GLSL_VERT);
+    const fragmentShader = compile(gl.FRAGMENT_SHADER, GLSL_FRAG);
+    const program = gl.createProgram();
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
+    const uniforms = {};
+    const count = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+    for (let i = 0; i < count; i++) {
+        const info = gl.getActiveUniform(program, i);
+        uniforms[info.name] = gl.getUniformLocation(program, info.name);
+    }
+    const quad = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    const contentTexture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, contentTexture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 0]));
+    gl.generateMipmap(gl.TEXTURE_2D);
+    return {
+        gl,
+        resize(width, height) {
+            if (output.width !== width || output.height !== height) {
+                output.width = width;
+                output.height = height;
+            }
+        },
+        upload(src) {
+            gl.bindTexture(gl.TEXTURE_2D, contentTexture);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
+            gl.generateMipmap(gl.TEXTURE_2D);
+        },
+        render(params) {
+            gl.useProgram(program);
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, contentTexture);
+            gl.uniform1i(uniforms.uContent, 0);
+            gl.uniform1f(uniforms.uZone, params.zone);
+            gl.uniform1f(uniforms.uAngle, params.angle);
+            gl.uniform1f(uniforms.uPersp, params.persp);
+            gl.uniform1f(uniforms.uDir, params.dir);
+            gl.uniform1f(uniforms.uTopAmt, params.topAmt);
+            gl.uniform1f(uniforms.uBotAmt, params.botAmt);
+            gl.uniform1f(uniforms.uMaxX, params.maxX);
+            gl.uniform1f(uniforms.uPxY, params.pxY);
+            gl.uniform1f(uniforms.uPxX, params.pxX);
+            gl.uniform1f(uniforms.uCover, params.cover);
+            gl.uniform3f(uniforms.uBg, params.bg[0], params.bg[1], params.bg[2]);
+            gl.uniform1f(uniforms.uTiltX, params.tiltX);
+            gl.uniform1f(uniforms.uTiltY, params.tiltY);
+            gl.uniform1f(uniforms.uPhi, params.phi);
+            gl.uniform1f(uniforms.uRound, params.round);
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            gl.viewport(0, 0, output.width, output.height);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        },
+        destroy() {
+            gl.deleteTexture(contentTexture);
+            gl.deleteProgram(program);
+            gl.deleteShader(vertexShader);
+            gl.deleteShader(fragmentShader);
+            gl.deleteBuffer(quad);
+        },
+    };
+}
+function createFallback2DRenderer(output, source) {
+    const ctx = output.getContext("2d");
+    if (!ctx)
+        return null;
+    return {
+        resize(width, height) {
+            if (output.width !== width || output.height !== height) {
+                output.width = width;
+                output.height = height;
+            }
+        },
+        upload() { },
+        render() {
+            ctx.clearRect(0, 0, output.width, output.height);
+            ctx.drawImage(source, 0, 0, output.width, output.height);
+        },
+        destroy() { },
+    };
+}
+// ---------------------------------------------------------------------------
+// Main Entry Point
+// ---------------------------------------------------------------------------
+function createBend(elements, options = {}) {
+    const config = { ...DEFAULTS, ...options };
+    const { source, content, output } = elements;
+    // Bending needs captured pixels. Its fallback is ordinary scrollable HTML;
+    // do not allocate a GPU context or run a transparent shader over that HTML.
+    if (!source.contains(content) || !supportsHtmlInCanvas())
+        return null;
+    const sourceCtx = source.getContext("2d");
+    const paintable = source;
+    const htmlInCanvas = Boolean(!isHtmlInCanvasBlocked() &&
+        source.contains(content) &&
+        sourceCtx &&
+        typeof sourceCtx.drawElementImage === "function" &&
+        typeof paintable.requestPaint === "function");
+    if (htmlInCanvas)
+        prepareHtmlInCanvas(source, content);
+    let renderer = null;
+    let contentDirty = false;
+    let destroyed = false;
+    let running = false;
+    let visible = true;
+    let raf = 0;
+    let lastTime = performance.now();
+    let contentMaxX = 1;
+    let bg = [0, 0, 0];
+    const bgProbe = document.createElement("canvas");
+    bgProbe.width = bgProbe.height = 1;
+    const bgCtx = bgProbe.getContext("2d", { willReadFrequently: true });
+    let topTarget = 0;
+    let bottomTarget = 0;
+    let topCurrent = 0;
+    let bottomCurrent = 0;
+    let over = 0;
+    let phiCurrent = 0;
+    let tiltXTarget = 0;
+    let tiltYTarget = 0;
+    let tiltXCurrent = 0;
+    let tiltYCurrent = 0;
+    let forwarding = false;
+    let selecting = false;
+    let hoverChain = [];
+    let hoverTarget = null;
+    let hoverClientX = 0;
+    let hoverClientY = 0;
+    let hoverOn = false;
+    const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let reducedMotion = motionQuery.matches;
+    const rectCache = createRectCache(output);
+    if (htmlInCanvas) {
+        patchHoverRules();
+        content.setAttribute(CONTENT_ATTR, "");
+        paintable.onpaint = () => {
+            try {
+                sourceCtx.reset();
+                drawHtmlInCanvas(source, sourceCtx, content);
+                contentDirty = true;
+                start();
+            }
+            catch { }
+        };
+    }
+    function syncBgColor() {
+        if (!bgCtx)
+            return;
+        let el = content;
+        while (el) {
+            const css = getComputedStyle(el).backgroundColor;
+            if (css && css !== "transparent") {
+                bgCtx.clearRect(0, 0, 1, 1);
+                bgCtx.fillStyle = css;
+                bgCtx.fillRect(0, 0, 1, 1);
+                const [r, g, b, a] = bgCtx.getImageData(0, 0, 1, 1).data;
+                if (a > 0) {
+                    bg = [r / 255, g / 255, b / 255];
+                    return;
+                }
+            }
+            el = el.parentElement;
+        }
+        bg = [0, 0, 0];
+    }
+    function syncCanvasSize() {
+        const dpr = getCanvasPixelRatio(output, renderer?.gl);
+        const width = Math.max(1, Math.round(output.clientWidth * dpr));
+        const height = Math.max(1, Math.round(output.clientHeight * dpr));
+        if (renderer) {
+            renderer.resize(width, height);
+        }
+        else if (output.width !== width || output.height !== height) {
+            output.width = width;
+            output.height = height;
+        }
+        contentMaxX = Math.min(1, Math.max(0.05, content.clientWidth / Math.max(output.clientWidth, 1)));
+        if (htmlInCanvas) {
+            const sourceWidth = Math.max(1, Math.round(source.clientWidth * dpr));
+            const sourceHeight = Math.max(1, Math.round(source.clientHeight * dpr));
+            if (source.width !== sourceWidth || source.height !== sourceHeight) {
+                source.width = sourceWidth;
+                source.height = sourceHeight;
+            }
+            paintable.requestPaint();
+        }
+    }
+    function syncScroll() {
+        const max = content.scrollHeight - content.clientHeight;
+        const t = content.scrollTop;
+        const e = Math.max(config.ease, 1);
+        const ramp = (v) => {
+            const x = Math.min(Math.max(v / e, 0), 1);
+            return x * x * (3 - 2 * x);
+        };
+        topTarget = max > 1 && config.top ? ramp(t) : 0;
+        bottomTarget = max > 1 && config.bottom ? ramp(max - t) : 0;
+    }
+    function render() {
+        if (!renderer)
+            return;
+        if (htmlInCanvas && contentDirty) {
+            contentDirty = false;
+            syncBgColor();
+            renderer.upload(source);
+        }
+        const h = Math.max(output.clientHeight, 1);
+        const w = Math.max(output.clientWidth, 1);
+        const zoneFrac = Math.min(Math.max(config.zone, 8) / h, 0.49);
+        renderer.render({
+            contentSize: [Math.max(1, source.width), Math.max(1, source.height)],
+            bg,
+            zone: zoneFrac,
+            angle: Math.min(Math.max(config.angle, 1), 160) * (Math.PI / 180),
+            persp: Math.max(config.perspective, 50) / h,
+            dir: config.direction === "in" ? -1 : 1,
+            topAmt: topCurrent,
+            botAmt: bottomCurrent,
+            maxX: contentMaxX,
+            pxY: 1.5 / h,
+            pxX: 1.5 / w,
+            cover: htmlInCanvas ? 1 : 0,
+            tiltX: tiltXCurrent,
+            tiltY: tiltYCurrent,
+            phi: phiCurrent,
+            round: Math.min(Math.max(config.rounding, 0) / h, zoneFrac),
+        });
+    }
+    function frame(now) {
+        if (destroyed)
+            return;
+        if (!visible || !renderer) {
+            running = false;
+            return;
+        }
+        const delta = Math.min((now - lastTime) / 1000, 1 / 30);
+        lastTime = now;
+        const tau = config.smoothing;
+        const k = reducedMotion || tau <= 0
+            ? 1
+            : 1 - Math.exp(-delta / Math.max(tau, 1e-4));
+        topCurrent += (topTarget - topCurrent) * k;
+        bottomCurrent += (bottomTarget - bottomCurrent) * k;
+        if (Math.abs(topTarget - topCurrent) < 0.001)
+            topCurrent = topTarget;
+        if (Math.abs(bottomTarget - bottomCurrent) < 0.001)
+            bottomCurrent = bottomTarget;
+        over *= Math.exp(-delta / 0.22);
+        if (Math.abs(over) < 0.5)
+            over = 0;
+        const phiTarget = reducedMotion || config.tumble <= 0
+            ? 0
+            : Math.tanh(over / 500) * 0.4 * Math.min(config.tumble, 1);
+        phiCurrent += (phiTarget - phiCurrent) * Math.min(delta / 0.09, 1);
+        if (phiTarget === 0 && Math.abs(phiCurrent) < 1e-4)
+            phiCurrent = 0;
+        if (reducedMotion || config.tilt <= 0) {
+            tiltXTarget = 0;
+            tiltYTarget = 0;
+        }
+        const kT = Math.min(delta / 0.15, 1);
+        tiltXCurrent += (tiltXTarget - tiltXCurrent) * kT;
+        tiltYCurrent += (tiltYTarget - tiltYCurrent) * kT;
+        if (Math.abs(tiltXTarget - tiltXCurrent) < 1e-4)
+            tiltXCurrent = tiltXTarget;
+        if (Math.abs(tiltYTarget - tiltYCurrent) < 1e-4)
+            tiltYCurrent = tiltYTarget;
+        render();
+        if (!contentDirty &&
+            topCurrent === topTarget &&
+            bottomCurrent === bottomTarget &&
+            over === 0 &&
+            phiCurrent === 0 &&
+            tiltXCurrent === tiltXTarget &&
+            tiltYCurrent === tiltYTarget) {
+            running = false;
+            return;
+        }
+        raf = requestAnimationFrame(frame);
+    }
+    function start() {
+        if (destroyed || running || !visible || !renderer)
+            return;
+        running = true;
+        lastTime = performance.now();
+        raf = requestAnimationFrame(frame);
+    }
+    function activateFallbackRenderer() {
+        const webgl = createWebGL2Renderer(output);
+        if (webgl) {
+            renderer = webgl;
+        }
+        else {
+            console.warn("Bend: GPU backends unavailable, falling back to 2D canvas.");
+            renderer = createFallback2DRenderer(output, source);
+        }
+        if (renderer) {
+            contentDirty = true;
+            syncCanvasSize();
+            start();
+        }
+    }
+    // Initialize backend
+    if (config.backend !== "webgl2" && supportsWebGPU()) {
+        acquireGpu()
+            .then((gpu) => {
+            if (destroyed)
+                return;
+            renderer = createWebGPURenderer(gpu, output, source);
+            contentDirty = true;
+            syncCanvasSize();
+            start();
+        })
+            .catch((error) => {
+            if (destroyed)
+                return;
+            console.warn("Bend: WebGPU unavailable, falling back.", error);
+            activateFallbackRenderer();
+        });
+    }
+    else {
+        activateFallbackRenderer();
+        if (!renderer)
+            return null;
+    }
+    // -------------------------------------------------------------------------
+    // Inverse Coordinate Mapping & DOM Event Forwarding
+    // -------------------------------------------------------------------------
+    function mapPoint(px, py) {
+        const w = Math.max(output.clientWidth, 1);
+        const h = Math.max(output.clientHeight, 1);
+        const persp = Math.max(config.perspective, 50) / h;
+        const zone = Math.min(Math.max(config.zone, 8) / h, 0.49);
+        const round = Math.min(Math.max(config.rounding, 0) / h, zone);
+        const angle = Math.min(Math.max(config.angle, 1), 160) * (Math.PI / 180);
+        const dirSign = config.direction === "in" ? -1 : 1;
+        const cx = contentMaxX * 0.5;
+        const x = px / w;
+        let y = 1 - py / h;
+        let zSum = 0;
+        if (Math.abs(phiCurrent) > 1e-4) {
+            const tip = (sy, phi) => {
+                const s = Math.sin(phi);
+                const c = Math.cos(phi);
+                const denom = Math.max(c * persp + s * (sy - 0.5), 1e-4);
+                const t = (persp * (1 - sy)) / denom;
+                return [1 - t, t * s];
+            };
+            if (phiCurrent > 0) {
+                const tipped = tip(y, phiCurrent);
+                y = tipped[0];
+                zSum += tipped[1];
+            }
+            else {
+                const tipped = tip(1 - y, -phiCurrent);
+                y = 1 - tipped[0];
+                zSum += tipped[1];
+            }
+        }
+        const zG = tiltXCurrent * (x - cx) + tiltYCurrent * (y - 0.5);
+        zSum += zG;
+        y = 0.5 + (y - 0.5) * ((persp + zG) / persp);
+        const fold = (sy, amt) => {
+            const yf = 1 - zone;
+            if (amt < 1e-4)
+                return [sy, 0, 1];
+            const theta = angle * amt;
+            if (round < 1e-4) {
+                const s = Math.sin(theta) * dirSign;
+                const c = Math.cos(theta);
+                const denom = Math.max(c * persp + s * (0.5 - sy), 1e-5);
+                const tRaw = (persp * (sy - yf)) / denom;
+                const t = Math.min(Math.max(tRaw, 0), zone);
+                const z = Math.max(t * s, -0.85 * persp);
+                return [yf + t, z, tRaw > zone ? 0 : 1];
+            }
+            if (sy <= yf)
+                return [sy, 0, 1];
+            const R = Math.min(round, zone);
+            const r = R / theta;
+            const ca = Math.cos(theta);
+            const sa = Math.sin(theta);
+            const yA = r * sa;
+            const zA = r * (1 - ca);
+            let prevSy = yf;
+            let prevZ = 0;
+            let prevU = 0;
+            let bestU = -1;
+            let bestZ = 0;
+            const du = zone / 40;
+            for (let i = 1; i <= 40; i++) {
+                const u = du * i;
+                let py2;
+                let zm;
+                if (u <= R) {
+                    const a = u / r;
+                    py2 = r * Math.sin(a);
+                    zm = r * (1 - Math.cos(a));
+                }
+                else {
+                    py2 = yA + (u - R) * ca;
+                    zm = zA + (u - R) * sa;
+                }
+                const worldY = yf + py2;
+                const worldZ = Math.max(zm * dirSign, -0.85 * persp);
+                const scr = 0.5 + ((worldY - 0.5) * persp) / (persp + worldZ);
+                if ((prevSy - sy) * (scr - sy) <= 0 && Math.abs(scr - prevSy) > 1e-7) {
+                    const f = Math.min(Math.max((sy - prevSy) / (scr - prevSy), 0), 1);
+                    bestU = prevU + (u - prevU) * f;
+                    bestZ = prevZ + (worldZ - prevZ) * f;
+                    if (dirSign > 0)
+                        break;
+                }
+                prevSy = scr;
+                prevZ = worldZ;
+                prevU = u;
+            }
+            if (bestU < 0)
+                return [1, prevZ, 0];
+            return [yf + bestU, bestZ, 1];
+        };
+        let srcY = y;
+        let alpha = 1;
+        if (y >= 1 - zone) {
+            const folded = fold(y, topCurrent);
+            srcY = folded[0];
+            zSum += folded[1];
+            alpha *= folded[2];
+        }
+        else if (y <= zone) {
+            const folded = fold(1 - y, bottomCurrent);
+            srcY = 1 - folded[0];
+            zSum += folded[1];
+            alpha *= folded[2];
+        }
+        const srcX = cx + (x - cx) * ((persp + zSum) / persp);
+        if (srcX < 0 || srcX > contentMaxX || srcY < 0 || srcY > 1)
+            alpha = 0;
+        return { x: srcX * w, y: (1 - srcY) * h, alpha };
+    }
+    function setHoverTarget(target) {
+        if (target === hoverTarget)
+            return;
+        hoverTarget = target;
+        const next = new Set();
+        for (let el = target; el; el = el.parentElement) {
+            next.add(el);
+            if (el === content)
+                break;
+        }
+        for (const el of hoverChain) {
+            if (!next.has(el))
+                el.removeAttribute(HOVER_ATTR);
+        }
+        for (const el of next)
+            el.setAttribute(HOVER_ATTR, "");
+        hoverChain = Array.from(next);
+        content.removeAttribute(CURSOR_ATTR);
+        content.style.removeProperty("--canvasui-cursor");
+        if (target) {
+            content.style.setProperty("--canvasui-cursor", getComputedStyle(target).cursor);
+            content.setAttribute(CURSOR_ATTR, "");
+        }
+    }
+    function clientToLocal(clientX, clientY) {
+        const rect = rectCache.current;
+        const width = Math.max(output.clientWidth, 1);
+        const height = Math.max(output.clientHeight, 1);
+        const dx = clientX - rect.left;
+        const dy = clientY - rect.top;
+        if (config.interactionRotation === -90) {
+            return {
+                rect,
+                x: width - dy / (rect.height / width),
+                y: dx / (rect.width / height),
+            };
+        }
+        if (config.interactionRotation === 90) {
+            return {
+                rect,
+                x: dy / (rect.height / width),
+                y: height - dx / (rect.width / height),
+            };
+        }
+        return {
+            rect,
+            x: dx / (rect.width / width),
+            y: dy / (rect.height / height),
+        };
+    }
+    function localToClient(x, y, rect) {
+        const width = Math.max(output.clientWidth, 1);
+        const height = Math.max(output.clientHeight, 1);
+        if (config.interactionRotation === -90) {
+            return {
+                x: rect.left + y * (rect.width / height),
+                y: rect.top + (width - x) * (rect.height / width),
+            };
+        }
+        if (config.interactionRotation === 90) {
+            return {
+                x: rect.left + (height - y) * (rect.width / height),
+                y: rect.top + x * (rect.height / width),
+            };
+        }
+        return {
+            x: rect.left + x * (rect.width / width),
+            y: rect.top + y * (rect.height / height),
+        };
+    }
+    function updateHover(clientX, clientY) {
+        if (!htmlInCanvas)
+            return;
+        const local = clientToLocal(clientX, clientY);
+        const { rect } = local;
+        if (rect.width === 0 || rect.height === 0)
+            return;
+        const mapped = mapPoint(local.x, local.y);
+        if (mapped.alpha < 0.5) {
+            setHoverTarget(null);
+            return;
+        }
+        const point = localToClient(mapped.x, mapped.y, rect);
+        const target = document.elementFromPoint(point.x, point.y);
+        setHoverTarget(target && content.contains(target) ? target : null);
+    }
+    function remapped(event) {
+        const local = clientToLocal(event.clientX, event.clientY);
+        const { rect } = local;
+        if (rect.width === 0 || rect.height === 0)
+            return null;
+        const mapped = mapPoint(local.x, local.y);
+        if (mapped.alpha < 0.5)
+            return null;
+        const point = localToClient(mapped.x, mapped.y, rect);
+        if (Math.hypot(point.x - event.clientX, point.y - event.clientY) < 1.5) {
+            return null;
+        }
+        return point;
+    }
+    function caretAt(x, y) {
+        const doc = document;
+        if (typeof doc.caretPositionFromPoint === "function") {
+            const c = doc.caretPositionFromPoint(x, y);
+            return c ? { node: c.offsetNode, offset: c.offset } : null;
+        }
+        const r = doc.caretRangeFromPoint?.(x, y);
+        return r ? { node: r.startContainer, offset: r.startOffset } : null;
+    }
+    // -------------------------------------------------------------------------
+    // Event Listeners & Observers
+    // -------------------------------------------------------------------------
+    function onScroll() {
+        syncScroll();
+        if (htmlInCanvas)
+            paintable.requestPaint();
+        if (hoverOn)
+            updateHover(hoverClientX, hoverClientY);
+        start();
+    }
+    function onWheel(event) {
+        if (config.tumble <= 0 || reducedMotion)
+            return;
+        const max = content.scrollHeight - content.clientHeight;
+        if (max <= 1)
+            return;
+        const st = content.scrollTop;
+        if (event.deltaY > 0 && st >= max - 1) {
+            over = Math.min(over + event.deltaY, 900);
+        }
+        else if (event.deltaY < 0 && st <= 1) {
+            over = Math.max(over + event.deltaY, -900);
+        }
+        else {
+            return;
+        }
+        start();
+    }
+    function onPointerMove(event) {
+        if (!event.isPrimary)
+            return;
+        hoverClientX = event.clientX;
+        hoverClientY = event.clientY;
+        hoverOn = true;
+        updateHover(event.clientX, event.clientY);
+        if (config.tilt > 0 && !reducedMotion) {
+            const rect = rectCache.current;
+            if (rect.width > 0 && rect.height > 0) {
+                const nx = (event.clientX - rect.left) / rect.width - 0.5;
+                const ny = 0.5 - (event.clientY - rect.top) / rect.height;
+                const amp = Math.min(config.tilt, 1) * 0.14;
+                tiltXTarget = -nx * amp;
+                tiltYTarget = -ny * amp;
+                start();
+            }
+        }
+    }
+    function onPointerLeave() {
+        hoverOn = false;
+        setHoverTarget(null);
+        tiltXTarget = 0;
+        tiltYTarget = 0;
+        start();
+    }
+    function onClick(event) {
+        if (forwarding || !htmlInCanvas || event.button !== 0)
+            return;
+        const local = clientToLocal(event.clientX, event.clientY);
+        const { rect } = local;
+        if (rect.width === 0 || rect.height === 0)
+            return;
+        const mapped = mapPoint(local.x, local.y);
+        if (mapped.alpha < 0.5) {
+            event.preventDefault();
+            event.stopPropagation();
+            return;
+        }
+        const point = localToClient(mapped.x, mapped.y, rect);
+        if (Math.hypot(point.x - event.clientX, point.y - event.clientY) < 1.5)
+            return;
+        event.preventDefault();
+        event.stopPropagation();
+        const target = document.elementFromPoint(point.x, point.y);
+        if (!target)
+            return;
+        forwarding = true;
+        try {
+            target.dispatchEvent(new MouseEvent("click", {
+                bubbles: true,
+                cancelable: true,
+                composed: true,
+                view: window,
+                detail: event.detail,
+                clientX: point.x,
+                clientY: point.y,
+                screenX: event.screenX,
+                screenY: event.screenY,
+                ctrlKey: event.ctrlKey,
+                shiftKey: event.shiftKey,
+                altKey: event.altKey,
+                metaKey: event.metaKey,
+                button: event.button,
+            }));
+            if (target instanceof HTMLElement &&
+                target.matches("input, textarea, select, [contenteditable]")) {
+                target.focus();
+            }
+        }
+        finally {
+            forwarding = false;
+        }
+    }
+    function onMouseDown(event) {
+        if (forwarding || !htmlInCanvas || event.button !== 0)
+            return;
+        const m = remapped(event);
+        if (!m)
+            return;
+        event.preventDefault();
+        const caret = caretAt(m.x, m.y);
+        if (!caret || !content.contains(caret.node))
+            return;
+        const sel = window.getSelection();
+        if (!sel)
+            return;
+        sel.removeAllRanges();
+        sel.collapse(caret.node, caret.offset);
+        selecting = true;
+    }
+    function onSelMove(event) {
+        if (!selecting)
+            return;
+        if (!(event.buttons & 1)) {
+            selecting = false;
+            return;
+        }
+        const m = remapped(event);
+        const caret = m ? caretAt(m.x, m.y) : null;
+        const sel = window.getSelection();
+        if (caret && sel && sel.anchorNode && content.contains(caret.node)) {
+            sel.extend(caret.node, caret.offset);
+        }
+    }
+    function onSelEnd() {
+        selecting = false;
+    }
+    function onMotionChange() {
+        reducedMotion = motionQuery.matches;
+        start();
+    }
+    content.addEventListener("scroll", onScroll, { passive: true });
+    content.addEventListener("wheel", onWheel, { passive: true });
+    content.addEventListener("pointermove", onPointerMove, { passive: true });
+    content.addEventListener("pointerleave", onPointerLeave);
+    content.addEventListener("click", onClick, true);
+    content.addEventListener("mousedown", onMouseDown, true);
+    window.addEventListener("mousemove", onSelMove, true);
+    window.addEventListener("mouseup", onSelEnd, true);
+    motionQuery.addEventListener("change", onMotionChange);
+    const observer = createCanvasResizeObserver(() => {
+        syncCanvasSize();
+        syncScroll();
+        start();
+    });
+    observer.observe(output);
+    observer.observe(content);
+    const intersection = new IntersectionObserver((entries) => {
+        visible = entries[entries.length - 1]?.isIntersecting ?? true;
+        if (visible)
+            start();
+    });
+    intersection.observe(output);
+    syncCanvasSize();
+    syncScroll();
+    syncBgColor();
+    return {
+        setOptions(next) {
+            if (!Object.entries(next).some(([key, value]) => config[key] !== value))
+                return;
+            Object.assign(config, next);
+            syncScroll();
+            start();
+        },
+        resize() {
+            syncCanvasSize();
+            syncScroll();
+            start();
+        },
+        destroy() {
+            destroyed = true;
+            rectCache.destroy();
+            cancelAnimationFrame(raf);
+            setHoverTarget(null);
+            content.removeAttribute(CONTENT_ATTR);
+            content.removeAttribute(CURSOR_ATTR);
+            content.removeEventListener("scroll", onScroll);
+            content.removeEventListener("wheel", onWheel);
+            content.removeEventListener("pointermove", onPointerMove);
+            content.removeEventListener("pointerleave", onPointerLeave);
+            content.removeEventListener("click", onClick, true);
+            content.removeEventListener("mousedown", onMouseDown, true);
+            window.removeEventListener("mousemove", onSelMove, true);
+            window.removeEventListener("mouseup", onSelEnd, true);
+            observer.disconnect();
+            intersection.disconnect();
+            motionQuery.removeEventListener("change", onMotionChange);
+            renderer?.destroy();
+            renderer = null;
+            if (htmlInCanvas)
+                paintable.onpaint = null;
+        },
+    };
+}
+
+
+// Paper Trail page wiring.
+(() => {
+  const source = document.querySelector("#source");
+  const content = document.querySelector("#content");
+  const output = document.querySelector("#output");
+  const status = document.querySelector("#mode-status");
+  let bend = null;
+
+  function showHtml(message) {
+    // On unsupported browsers (and Android), keep the exact same page as regular HTML.
+    if (content.parentElement === source) source.after(content);
+    source.style.display = "none";
+    output.style.display = "none";
+    content.style.width = "100%";
+    content.style.height = "100%";
+    content.style.position = "fixed";
+    content.style.inset = "0";
+    content.style.zIndex = "1";
+    status.textContent = message;
+  }
+
+  try {
+    if (!supportsHtmlInCanvas()) {
+      showHtml("Standard HTML mode · native capture unavailable");
+    } else {
+      bend = createBend(
+        { source, content, output },
+        {
+          backend: "webgl2",
+          zone: 230,
+          angle: 80,
+          rounding: 145,
+          perspective: 700,
+          direction: "in",
+          ease: 260,
+          smoothing: 0.11,
+          top: true,
+          bottom: true,
+          tumble: 0.42,
+          tilt: 0.28
+        }
+      );
+      if (!bend) {
+        showHtml("Standard HTML mode · WebGL2 or capture unavailable");
+      } else {
+        status.textContent = "Canvas UI Bend · WebGL2 active";
+        window.addEventListener("pagehide", () => bend?.destroy(), { once: true });
+        window.addEventListener("resize", () => bend?.resize(), { passive: true });
+      }
+    }
+  } catch (error) {
+    console.warn("Bend could not be initialized:", error);
+    showHtml("Standard HTML mode · effect unavailable");
+  }
+
+  content.addEventListener("click", event => {
+    const button = event.target.closest(".save");
+    if (!button) return;
+    const saved = button.getAttribute("aria-pressed") === "true";
+    button.setAttribute("aria-pressed", String(!saved));
+    button.textContent = saved ? "♡" : "♥";
+    button.setAttribute(
+      "aria-label",
+      (saved ? "Save " : "Remove from saved books: ") +
+        button.closest(".book-card").querySelector("h3").textContent
+    );
+  });
+})();
+</script>
+</body>
+</html>
